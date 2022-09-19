@@ -35,6 +35,8 @@
 #include "core/core.h"
 #endif
 
+#define DONT_HAVE_MAGNETOMETER 1
+
 namespace bfs {
 
 void Mpu9250::Config(TwoWire *i2c, const I2cAddr addr) {
@@ -75,7 +77,7 @@ bool Mpu9250::Begin() {
   if (!ReadRegisters(WHOAMI_, sizeof(who_am_i_), &who_am_i_)) {
     return false;
   }
-  if ((who_am_i_ != WHOAMI_MPU9250_) && (who_am_i_ != WHOAMI_MPU9255_)) {
+  if ((who_am_i_ != WHOAMI_MPU9250_) && (who_am_i_ != WHOAMI_MPU9255_) && (who_am_i_ != 0x75)) {
     return false;
   }
   /* Enable I2C master mode */
@@ -86,6 +88,7 @@ bool Mpu9250::Begin() {
   if (!WriteRegister(I2C_MST_CTRL_, I2C_MST_CLK_)) {
     return false;
   }
+#ifndef DONT_HAVE_MAGNETOMETER
   /* Check the AK8963 WHOAMI */
   if (!ReadAk8963Registers(AK8963_WHOAMI_, sizeof(who_am_i_), &who_am_i_)) {
     return false;
@@ -122,6 +125,7 @@ bool Mpu9250::Begin() {
   if (!WriteAk8963Register(AK8963_CNTL1_, AK8963_CNT_MEAS2_)) {
     return false;
   }
+#endif
   delay(100);  // long wait between AK8963 mode changes
   /* Select clock source to gyro */
   if (!WriteRegister(PWR_MGMNT_1_, CLKSEL_PLL_)) {
@@ -139,10 +143,12 @@ bool Mpu9250::Begin() {
   if (!ConfigDlpfBandwidth(DLPF_BANDWIDTH_184HZ)) {
     return false;
   }
+#ifndef DONT_HAVE_MAGNETOMETER
   /* Set the SRD to 0 by default */
   if (!ConfigSrd(0)) {
     return false;
   }
+#endif
   return true;
 }
 bool Mpu9250::EnableDrdyInt() {
